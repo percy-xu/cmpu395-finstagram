@@ -120,7 +120,22 @@ def requests():
         return redirect(url_for('index'))
     else:
         if request.method == 'POST':
-            responses = request.form["responses"]
-            print(responses)
-
+            responses = dict(request.form)
+            for follower, response in responses.items():
+                if response == 'Yes':
+                    try:
+                        db.execute(
+                            'UPDATE Follow SET followStatus = 1'
+                            ' WHERE follower = ? AND followee = ?',
+                            (follower, user)
+                        )
+                        db.commit()
+                    except db.IntegrityError:
+                        flash("Oops, something went wrong!")
+                    else:
+                        flash("Requests accepted.")
+                        return redirect(url_for("index"))
+            flash("Requests rejected.")
+            return redirect(url_for('index'))
+            
     return render_template('friends/requests.html', num_requests=num_requests, requesters=requesters)
