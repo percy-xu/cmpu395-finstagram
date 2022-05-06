@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Following{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <h1>Your followers:</h1>
+  {% for follower in followers %}
+    <label for="follower">{{ follower }}</label>
+  {% endfor %}
+
+  <h1>You are following:</h1>
+  {% for following in followings %}
+    <label for="following">{{ following }}</label>
+  {% endfor %}
+
+  <h1>Follow new people?</h1>
+  <form method="post">
+    {% for non_follower in non_followers %}
+      {{non_follower}}<input type="checkbox" value="{{ non_follower }}" name="new_follow">
+    {% endfor %}
+    <input type="submit" value="Follow">
+  </form>
+{% endblock %}

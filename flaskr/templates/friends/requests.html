@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Friend Requests{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <h1>Your have {{ num_requests }} pending requests.</h1>
+  <form method="post">
+    {% for requester in requesters %}
+      <label for="responses"><i>{{ requester }}</i> made a request. Accept?</label>
+      <select name="responses" method="GET" action="/">
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+    {% endfor %}
+    <input type="submit" value="Confirm">
+  </form>
+{% endblock %}

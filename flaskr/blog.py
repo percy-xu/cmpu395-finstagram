@@ -66,6 +66,7 @@ def create():
 
         else:
             db = get_db()
+            # update Photos
             db.execute(
                 'INSERT INTO Photo (postingDate, filePath, allFollowers, caption, poster)'
                 'VALUES (?, ?, ?, ?, ?)',

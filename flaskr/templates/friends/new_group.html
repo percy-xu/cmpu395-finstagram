@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}New Group{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<form method="post">
+  <label for="group_name">Group Name</label>
+  <input name="group_name" id="group_name" required>
+  <label for="description">Description</label>
+  <input type="description" name="description" id="description" required>
+  <label for="members">Who is in this group?</label>
+  {% for user in all_users %}
+    {{user}}<input type="checkbox" value="{{ user }}" name="members">
+  {% endfor %}
+  <input type="submit" value="Save Group">
+</form>
+{% endblock %}
