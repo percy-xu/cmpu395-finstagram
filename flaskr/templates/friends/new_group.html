@@ -11,7 +11,7 @@
   <label for="description">Description</label>
   <input type="description" name="description" id="description" required>
   <label for="members">Who is in this group?</label>
-  {% for user in all_users %}
+  {% for user in all_followers %}
     {{user}}<input type="checkbox" value="{{ user }}" name="members">
   {% endfor %}
   <input type="submit" value="Save Group">

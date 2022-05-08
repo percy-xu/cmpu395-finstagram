@@ -1,4 +1,4 @@
-from flask import Flask, Blueprint, flash, g, redirect, render_template, request, url_for
+from flask import Blueprint, flash, g, redirect, render_template, request, url_for
 from flaskr.auth import login_required
 from flaskr.db import get_db
 
@@ -19,12 +19,18 @@ def new_group():
 
     db = get_db()
     user = g.user['username']
-    all_users = get_users()
+
+    all_followers = db.execute(
+        'SELECT follower FROM Follow WHERE followee = ? AND followStatus = 1',
+        (user)
+        ).fetchall()
+    all_followers = [person['follower'] for person in all_followers]
+    all_followers.sort(key=lambda x:x.lower())
+
 
     if request.method == 'POST':
         group_name = request.form['group_name']
         group_description = request.form['description']
-        creator = g.user['username']
         group_members = request.form.getlist('members')
 
         error = None
@@ -35,28 +41,31 @@ def new_group():
         
         if error is None:
             try:
+                # add group to database
                 db.execute(
                     "INSERT INTO FriendGroup (groupName, groupCreator, description) VALUES (?, ?, ?)",
-                    (group_name, creator, group_description),
+                    (group_name, user, group_description),
                 )
-
+                # add members into the group
                 for member in group_members:
                     db.execute(
                         "INSERT INTO BelongTo (username, groupName, groupCreator) VALUES (?, ?, ?)",
                         (member, group_name, user)
                     )
-
+                # add the user herself into the group
+                db.execute(
+                        "INSERT INTO BelongTo (username, groupName, groupCreator) VALUES (?, ?, ?)",
+                        (user, group_name, user)
+                    )
                 db.commit()
-
             except db.IntegrityError:
                 error = f"Group Name {group_name} already exists."
             else:
-
                 return redirect(url_for("index"))
 
         flash(error)
 
-    return render_template('friends/new_group.html', all_users=all_users)
+    return render_template('friends/new_group.html', all_followers=all_followers)
 
 @bp.route('/follow', methods=('GET', 'POST'))
 @login_required
@@ -95,6 +104,7 @@ def follow():
         except db.IntegrityError:
             flash("Oops, something went wrong!")
         else:
+            flash("Follow requests sent.")
             return redirect(url_for("index"))
 
     return render_template('friends/follow.html', followings=followings, followers=followers, non_followers=non_followers)
@@ -135,7 +145,18 @@ def requests():
                     else:
                         flash("Requests accepted.")
                         return redirect(url_for("index"))
-            flash("Requests rejected.")
-            return redirect(url_for('index'))
+                if response == 'No':
+                    try:
+                        db.execute(
+                            'DELETE FROM Follow'
+                            ' WHERE follower = ? AND followee = ? AND followStatus = 0',
+                            (follower, user)
+                        )
+                        db.commit()
+                    except db.IntegrityError:
+                        flash("Oops, something went wrong!")
+                    else:
+                        flash("Requests rejected.")
+                        return redirect(url_for('index'))
             
     return render_template('friends/requests.html', num_requests=num_requests, requesters=requesters)
