@@ -17,13 +17,12 @@ CREATE TABLE Person (
 );
 
 CREATE TABLE Photo (
-        pID INT AUTO_INCREMENT,
+        pID INTEGER PRIMARY KEY NOT NULL,
         postingDate DATETIME,
-        filePath VARCHAR(255), -- you may replace this by a BLOB attribute to store the actual photo
+        filePath VARCHAR(255),
         allFollowers INT,
         caption VARCHAR(1000),
         poster VARCHAR(32),
-        PRIMARY KEY (pID),
         FOREIGN KEY (poster) REFERENCES Person (username)
 );
 
