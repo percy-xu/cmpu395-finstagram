@@ -1,5 +1,6 @@
+from asyncio.windows_events import NULL
 from flask import (
-    Flask, Blueprint, flash, g, redirect, render_template, request, url_for, send_from_directory
+    Flask, Blueprint, flash, g, redirect, render_template, request, url_for, session
 )
 from werkzeug.exceptions import abort
 from werkzeug.utils import secure_filename
@@ -21,11 +22,25 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @bp.route('/')
+@login_required
 def index():
     db = get_db()
+
+    # user = g.user['username']
+
+    # 1. Photos posted by users followed by me with allFollowers == 1
+    # 2. Photos shared with the friend groups I am in
+
+    # posts = db.execute(
+    #     'SELECT pID, postingDate, caption, poster, filePath'
+    #     ' FROM Photo JOIN Person ON Photo.poster = Person.username'
+    #     ' WHERE Photo.allFollowers = 1'
+    #     ' ORDER BY postingDate DESC'
+    # ).fetchall()
+    
     posts = db.execute(
         'SELECT pID, postingDate, caption, poster, filePath'
-        ' FROM Photo JOIN Person ON Photo.poster = Person.username'
+        ' FROM Photo'
         ' ORDER BY postingDate DESC'
     ).fetchall()
     return render_template('blog/index.html', posts=posts)
@@ -33,8 +48,19 @@ def index():
 @bp.route('/create', methods=('GET', 'POST'))
 @login_required
 def create():
+    db = get_db()
+    username = g.user['username']
+
+    user_groups = db.execute(
+            "SELECT groupName"
+            " FROM FriendGroup"
+            " WHERE groupCreator = ?",
+            (username,)
+        ).fetchall()
+    user_groups = [item['groupName'] for item in user_groups]
+
     if request.method == 'POST':
-        
+
         photo = request.files['photo']
         # If the user does not select a file, the browser submits an
         # empty file without a filename.
@@ -49,33 +75,40 @@ def create():
 
         caption = request.form['caption']
         time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        username = g.user['username']
+
         all_followers = request.form['all_followers']
         if all_followers == 'Yes':
             all_followers = 1
         else:
             all_followers = 0
-        
-        error = None
 
+        error = None
         if not photo:
             error = 'Photo is required.'
-
         if error is not None:
             flash(error)
-
         else:
-            db = get_db()
             # update Photos
             db.execute(
                 'INSERT INTO Photo (postingDate, filePath, allFollowers, caption, poster)'
                 'VALUES (?, ?, ?, ?, ?)',
                 (time, filename, all_followers, caption, username)
             )
+            # update SharedWith
+            if all_followers == 0:
+                pid = db.execute('SELECT pID FROM Photo ORDER BY pID DESC LIMIT 1').fetchall()
+                pid = [item['pID'] for item in pid]
+                pid = pid[-1]
+                for grp in request.form.getlist('groups'):
+                    db.execute(
+                        'INSERT INTO SharedWith (pID, groupName, groupCreator)'
+                        'VALUES (?, ?, ?)',
+                        (pid, grp, username)
+                    )
             db.commit()
             return redirect(url_for('blog.index'))
 
-    return render_template('blog/create.html')
+    return render_template('blog/create.html', groups=user_groups)
 
 def get_post(id, check_author=True):
     post = get_db().execute(

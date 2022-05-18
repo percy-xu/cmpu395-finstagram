@@ -15,6 +15,10 @@
       <option value="Yes">Yes</option>
       <option value="No">No</option>
     </select>
+    <label for="groups">If not, which groups do you want to share it with?</label>
+    {% for group in groups %}
+      {{group}}<input type="checkbox" value="{{ group }}" name="groups">
+    {% endfor %}
     <input type=submit value="Post it!">
   </form>
 {% endblock %}
