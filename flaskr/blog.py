@@ -25,8 +25,7 @@ def allowed_file(filename):
 @login_required
 def index():
     db = get_db()
-
-    # user = g.user['username']
+    user = g.user['username']
 
     # 1. Photos posted by users followed by me with allFollowers == 1
     # 2. Photos shared with the friend groups I am in
@@ -40,8 +39,14 @@ def index():
     
     posts = db.execute(
         'SELECT pID, postingDate, caption, poster, filePath'
-        ' FROM Photo'
+        ' FROM Photo JOIN Follow on Photo.poster = Follow.followee'
+        ' WHERE Photo.allFollowers = 1 AND Follow.followStatus = 1 AND Follow.follower = ?'
         ' ORDER BY postingDate DESC'
+        ' UNION'
+        ' SELECT pID, postingDate, caption, poster, filePath'
+        ' FROM Photo JOIN SharedWith on pID JOIN BelongTo on groupName '
+        ,
+        (user)
     ).fetchall()
     return render_template('blog/index.html', posts=posts)
 
